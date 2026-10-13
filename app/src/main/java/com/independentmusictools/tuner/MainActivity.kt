@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -44,7 +45,10 @@ class MainActivity : ComponentActivity() {
                         viewModel = viewModel,
                         onOpenSettings = { screen = Screen.SETTINGS },
                     )
-                    Screen.SETTINGS -> SettingsScreen(
+                    Screen.SETTINGS -> {
+                        // Системный «назад» в настройках возвращает к тюнеру.
+                        BackHandler { screen = Screen.TUNER }
+                        SettingsScreen(
                         themeMode = themeMode,
                         languageTag = TunerSettings(applicationContext).languageTag,
                         onThemeChange = {
@@ -57,7 +61,8 @@ class MainActivity : ComponentActivity() {
                             recreate()
                         },
                         onBack = { screen = Screen.TUNER },
-                    )
+                        )
+                    }
                 }
             }
         }

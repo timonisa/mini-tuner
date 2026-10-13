@@ -11,8 +11,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material.icons.Icons
@@ -62,7 +64,13 @@ fun TunerScreen(
     ) { granted -> viewModel.onPermissionResult(granted) }
 
     Surface(modifier = Modifier.fillMaxSize()) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxSize()
+                // Не даём контенту залезать под статус-бар и панель навигации.
+                .statusBarsPadding()
+                .navigationBarsPadding(),
+        ) {
             // Геометрия шкалы: ось стрелки — точно в центре экрана.
             val gaugeWidth = maxWidth - HORIZONTAL_PADDING * 2
             val gaugeHeight = gaugeWidth / GAUGE_ASPECT
