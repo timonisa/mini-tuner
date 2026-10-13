@@ -3,7 +3,6 @@ package com.independentmusictools.tuner.ui
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,40 +15,46 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.FilledIconButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.independentmusictools.tuner.R
 import com.independentmusictools.tuner.state.TunerViewModel
 import com.independentmusictools.tuner.state.TunerViewModel.Status
-import com.independentmusictools.tuner.ui.theme.CharcoalMuted
 
 /**
  * Главный экран тюнера. Тюнер хроматический: цель — ближайшая нота.
  *
  * Компоновка строится от центра экрана: ось (центр вращения) стрелки
- * шкалы всегда в геометрическом центре, остальные блоки позиционируются
- * относительно шкалы. Заголовок — по середине левой половины экрана.
+ * всегда в геометрическом центре, остальные блоки позиционируются
+ * относительно шкалы.
  */
 @Composable
-fun TunerScreen(viewModel: TunerViewModel) {
+fun TunerScreen(
+    viewModel: TunerViewModel,
+    onOpenSettings: () -> Unit,
+) {
     val state by viewModel.state.collectAsState()
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -63,24 +68,18 @@ fun TunerScreen(viewModel: TunerViewModel) {
             val gaugeHeight = gaugeWidth / GAUGE_ASPECT
             val gaugeTop = maxHeight / 2 - gaugeHeight * GAUGE_PIVOT_FRACTION
 
-            // Заголовок: середина левой половины экрана, сверху.
-            Row(
+            // Шестерёнка — переход в настройки (верхний правый угол).
+            IconButton(
+                onClick = onOpenSettings,
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 16.dp),
+                    .align(Alignment.TopEnd)
+                    .padding(top = 8.dp, end = 8.dp),
             ) {
-                Box(
-                    modifier = Modifier.weight(1f),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "ТЮНЕР",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = CharcoalMuted,
-                        modifier = Modifier.semantics { contentDescription = "Гитарный тюнер" },
-                    )
-                }
-                Spacer(Modifier.weight(1f))
+                Icon(
+                    imageVector = Icons.Filled.Settings,
+                    contentDescription = stringResource(R.string.settings_cd),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
 
             // Крупная нота — доминанта экрана.
@@ -88,7 +87,7 @@ fun TunerScreen(viewModel: TunerViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .padding(top = 40.dp),
+                    .padding(top = 36.dp),
             ) {
                 val noteChar = if (state.status == Status.DETECTED) state.detectedNote else state.targetNote
                 Text(
@@ -119,19 +118,20 @@ fun TunerScreen(viewModel: TunerViewModel) {
                     .align(Alignment.TopCenter)
                     .offset(y = gaugeTop + gaugeHeight + 4.dp),
             ) {
-                val hzText = state.detectedHz?.let { String.format("%.1f Гц", it) } ?: "— Гц"
+                val hzText = state.detectedHz?.let { stringResource(R.string.freq_hz, it) }
+                    ?: stringResource(R.string.freq_placeholder)
                 Text(
                     text = hzText,
                     fontSize = 20.sp,
                     color = MaterialTheme.colorScheme.onBackground,
                 )
                 val targetText = state.targetHz?.let {
-                    String.format("цель %s · %.1f Гц", state.targetNote, it)
-                } ?: "цель — ближайшая нота"
+                    stringResource(R.string.target_note_freq, state.targetNote, it)
+                } ?: stringResource(R.string.target_nearest)
                 Text(
                     text = targetText,
                     fontSize = 13.sp,
-                    color = CharcoalMuted,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
                 Spacer(Modifier.height(12.dp))
@@ -142,18 +142,26 @@ fun TunerScreen(viewModel: TunerViewModel) {
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    SmallStepButton("−", "Понизить эталон A4") { viewModel.adjustA4(-1.0) }
+                    SmallStepButton(
+                        symbol = "−",
+                        description = stringResource(R.string.a4_lower_cd),
+                    ) { viewModel.adjustA4(-1.0) }
                     Text(
-                        text = String.format("A4 = %.0f Гц", state.a4Hz),
+                        text = stringResource(R.string.a4_value, state.a4Hz),
                         fontSize = 16.sp,
                         modifier = Modifier.padding(horizontal = 16.dp),
                     )
-                    SmallStepButton("+", "Повысить эталон A4") { viewModel.adjustA4(1.0) }
+                    SmallStepButton(
+                        symbol = "+",
+                        description = stringResource(R.string.a4_raise_cd),
+                    ) { viewModel.adjustA4(1.0) }
                 }
             }
 
             // Главная кнопка: включить/выключить прослушивание.
             val listening = state.status != Status.IDLE
+            val startCd = stringResource(R.string.start_cd)
+            val stopCd = stringResource(R.string.stop_cd)
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
@@ -168,7 +176,7 @@ fun TunerScreen(viewModel: TunerViewModel) {
                     modifier = Modifier
                         .size(76.dp)
                         .semantics {
-                            contentDescription = if (listening) "Остановить тюнер" else "Включить тюнер"
+                            contentDescription = if (listening) stopCd else startCd
                         },
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -192,7 +200,7 @@ fun TunerScreen(viewModel: TunerViewModel) {
                         )
                         Spacer(Modifier.width(6.dp))
                         Text(
-                            text = "Без доступа к микрофону тюнер не работает.\nРазрешите доступ в настройках системы.",
+                            text = stringResource(R.string.mic_denied),
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
@@ -207,12 +215,17 @@ fun TunerScreen(viewModel: TunerViewModel) {
 @Composable
 private fun StatusLine(state: TunerViewModel.UiState) {
     val (text, color) = when {
-        state.status == Status.IDLE -> "выключен" to CharcoalMuted
-        state.status == Status.LISTENING -> "слушаю…" to CharcoalMuted
-        state.status == Status.DETECTED && state.inTune -> "В СТРОЙ" to MaterialTheme.colorScheme.primary
-        state.status == Status.DETECTED && state.flat == true -> "ниже — подтяните" to MaterialTheme.colorScheme.error
-        state.status == Status.DETECTED && state.flat == false -> "выше — ослабьте" to MaterialTheme.colorScheme.error
-        else -> "…" to CharcoalMuted
+        state.status == Status.IDLE ->
+            stringResource(R.string.status_off) to MaterialTheme.colorScheme.onSurfaceVariant
+        state.status == Status.LISTENING ->
+            stringResource(R.string.status_listening) to MaterialTheme.colorScheme.onSurfaceVariant
+        state.status == Status.DETECTED && state.inTune ->
+            stringResource(R.string.status_in_tune) to MaterialTheme.colorScheme.primary
+        state.status == Status.DETECTED && state.flat == true ->
+            stringResource(R.string.status_flat) to MaterialTheme.colorScheme.error
+        state.status == Status.DETECTED && state.flat == false ->
+            stringResource(R.string.status_sharp) to MaterialTheme.colorScheme.error
+        else -> "…" to MaterialTheme.colorScheme.onSurfaceVariant
     }
     Text(
         text = text,

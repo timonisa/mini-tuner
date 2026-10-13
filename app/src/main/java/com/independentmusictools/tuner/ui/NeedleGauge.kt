@@ -3,6 +3,7 @@ package com.independentmusictools.tuner.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -17,16 +18,13 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.independentmusictools.tuner.ui.theme.Charcoal
-import com.independentmusictools.tuner.ui.theme.CharcoalMuted
-import com.independentmusictools.tuner.ui.theme.Hairline
-import com.independentmusictools.tuner.ui.theme.Vermilion
 import kotlin.math.cos
 import kotlin.math.sin
 
 /**
  * Полукруглая аналоговая шкала тюнера (диапазон ±[rangeCents] центов).
  * Рисуется программно через Canvas; стрелка — геометрия, не изображение.
+ * Цвета берутся из темы Material.
  *
  * Система углов Canvas: 0° = 3 часа, рост по часовой. Верхняя полуокружность
  * занимает 180°–360°, зенит (центр шкалы) = 270°.
@@ -38,7 +36,8 @@ fun NeedleGauge(
     modifier: Modifier = Modifier,
 ) {
     val textMeasurer = rememberTextMeasurer()
-    val tickStyle = TextStyle(fontSize = 10.sp, color = CharcoalMuted)
+    val scheme = MaterialTheme.colorScheme
+    val tickStyle = TextStyle(fontSize = 10.sp, color = scheme.onSurfaceVariant)
 
     Canvas(
         modifier = modifier
@@ -53,7 +52,7 @@ fun NeedleGauge(
 
         // Дуга шкалы
         drawArc(
-            color = Hairline,
+            color = scheme.outline,
             startAngle = 180f,
             sweepAngle = 180f,
             useCenter = false,
@@ -65,7 +64,7 @@ fun NeedleGauge(
         // Зона «в строе» ±5 центов у зенита
         val tuneHalfDeg = (IN_TUNE_ZONE_CENTS / rangeCents * 90.0).toFloat()
         drawArc(
-            color = Vermilion.copy(alpha = 0.9f),
+            color = scheme.tertiary.copy(alpha = 0.9f),
             startAngle = 270f - tuneHalfDeg,
             sweepAngle = 2f * tuneHalfDeg,
             useCenter = false,
@@ -86,9 +85,9 @@ fun NeedleGauge(
             }
             drawLine(
                 color = when {
-                    isCenter -> Vermilion
-                    isMajor -> Charcoal
-                    else -> Hairline
+                    isCenter -> scheme.tertiary
+                    isMajor -> scheme.onBackground
+                    else -> scheme.outline
                 },
                 start = pointAt(centerX, centerY, tickInner, angleDeg),
                 end = pointAt(centerX, centerY, radius, angleDeg),
@@ -119,22 +118,22 @@ fun NeedleGauge(
         rotate(degrees = needleDeg - 180f, pivot = Offset(centerX, centerY)) {
             // Стрелка нарисована направленной влево (180°), поворот ставит её на нужный угол
             drawLine(
-                color = if (active) Vermilion else Vermilion.copy(alpha = 0.30f),
+                color = if (active) scheme.tertiary else scheme.tertiary.copy(alpha = 0.30f),
                 start = Offset(centerX, centerY),
                 end = Offset(centerX - radius * 0.90f, centerY),
                 strokeWidth = 3.dp.toPx(),
                 cap = StrokeCap.Round,
             )
             drawLine( // противовес
-                color = Charcoal,
+                color = scheme.onBackground,
                 start = Offset(centerX, centerY),
                 end = Offset(centerX + radius * 0.14f, centerY),
                 strokeWidth = 5.dp.toPx(),
                 cap = StrokeCap.Round,
             )
         }
-        drawCircle(color = Charcoal, radius = 5.dp.toPx(), center = Offset(centerX, centerY))
-        drawCircle(color = Color.White, radius = 2.dp.toPx(), center = Offset(centerX, centerY))
+        drawCircle(color = scheme.onBackground, radius = 5.dp.toPx(), center = Offset(centerX, centerY))
+        drawCircle(color = scheme.background, radius = 2.dp.toPx(), center = Offset(centerX, centerY))
     }
 }
 

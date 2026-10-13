@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="status_off">未开启</string>
+    <string name="status_listening">正在聆听…</string>
+    <string name="status_in_tune">已调准</string>
+    <string name="status_flat">偏低 — 请拧紧</string>
+    <string name="status_sharp">偏高 — 请放松</string>
+
+    <string name="freq_hz">%.1f Hz</string>
+    <string name="freq_placeholder">— Hz</string>
+    <string name="target_note_freq">目标 %1$s · %2$.1f Hz</string>
+    <string name="target_nearest">目标 — 最近的音符</string>
+    <string name="a4_value">A4 = %.0f Hz</string>
+
+    <string name="a4_lower_cd">降低标准音 A4</string>
+    <string name="a4_raise_cd">提高标准音 A4</string>
+    <string name="start_cd">开启调音器</string>
+    <string name="stop_cd">停止调音器</string>
+    <string name="settings_cd">设置</string>
+    <string name="back_cd">返回</string>
+
+    <string name="mic_denied">调音器需要麦克风权限。\n请在系统设置中允许访问。</string>
+
+    <string name="settings_title">设置</string>
+    <string name="settings_theme">主题</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+    <string name="settings_language">语言</string>
+</resources>
