@@ -1,0 +1,25 @@
+# Gradle
+.gradle/
+build/
+
+# Kotlin-кэши
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Локальная конфигурация (путь к SDK)
+local.properties
+
+# Артефакты сборки
+*.apk
+*.aab
+
+# Логи
+build.log
+
+# OS
+.DS_Store
+Thumbs.db

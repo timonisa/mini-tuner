@@ -1,0 +1,14 @@
+# Автонормализация переводов строк; точечные исключения ниже.
+* text=auto
+
+# Скрипты для Unix обязаны оставаться с LF
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Windows-скрипты — с CRLF
+*.bat text eol=crlf
+
+# Бинарные файлы
+*.jar binary
+*.png binary
+*.apk binary
