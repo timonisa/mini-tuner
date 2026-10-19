@@ -55,6 +55,9 @@ class TunerViewModel(
     private var smoothedCents: Double? = null
     private var lastGoodAtMs = 0L
 
+    /** Момент (uptime ms), до которого стрелка держится в покое после тишины. */
+    private var settleUntilMs = 0L
+
     private var capture: AudioCapture? = null
 
     fun onPermissionResult(granted: Boolean) {
@@ -72,12 +75,14 @@ class TunerViewModel(
         )
         recentHz.clear()
         smoothedCents = null
+        settleUntilMs = 0L
         capture = AudioCapture { buffer -> onAudioBuffer(buffer) }.also { it.start() }
     }
 
     fun stopListening() {
         capture?.stop()
         capture = null
+        settleUntilMs = 0L
         _state.value = _state.value.copy(
             status = Status.IDLE,
             needleCents = null,
@@ -104,6 +109,11 @@ class TunerViewModel(
         if (result.frequencyHz == null || result.clarity < MIN_CLARITY) {
             // Ненадёжный сигнал: держим показания полсекунды, затем gracefully гасим.
             if (now - lastGoodAtMs > HOLD_MS && s.status != Status.LISTENING) {
+                // Сбрасываем окно и период успокоения: следующее появление
+                // сигнала начнётся с чистого листа.
+                recentHz.clear()
+                smoothedCents = null
+                settleUntilMs = 0L
                 _state.value = s.copy(
                     status = Status.LISTENING,
                     needleCents = null,
@@ -116,16 +126,24 @@ class TunerViewModel(
             return
         }
 
+        // Сигнал появился после тишины: окно с нуля и период успокоения,
+        // чтобы стрелка не дёргалась на неустойчивой атаке звука.
+        if (now - lastGoodAtMs > HOLD_MS || settleUntilMs == 0L) {
+            recentHz.clear()
+            smoothedCents = null
+            settleUntilMs = now + SETTLE_MS
+        }
+
         val hz = result.frequencyHz
         recentHz.addLast(hz)
         if (recentHz.size > SMOOTH_WINDOW) recentHz.removeFirst()
         val medianHz = median(recentHz)
         lastGoodAtMs = now
 
-        updateTargets(medianHz)
+        updateTargets(medianHz, now)
     }
 
-    private fun updateTargets(hz: Double?) {
+    private fun updateTargets(hz: Double?, now: Long = System.currentTimeMillis()) {
         val s = _state.value
         if (hz == null) return
 
@@ -133,20 +151,28 @@ class TunerViewModel(
         val nearest = PitchMath.nearestNote(hz, s.a4Hz)
 
         // Экспоненциальное сглаживание центов: стрелка движется спокойно,
-        // без дрожания на каждом буфере.
+        // без дрожания на каждом буфере. Пока идёт период успокоения,
+        // стрелка стоит в покое; первый показ — сразу на устоявшейся медиане.
+        val settled = now >= settleUntilMs
         val rawCents = nearest.cents.coerceIn(-NEEDLE_RANGE_CENTS, NEEDLE_RANGE_CENTS)
-        // Скачок за один буфер (~46 мс) больше этого — это смена ноты
-        // (другая струна или переход через границу полутона), а не движение
-        // колка: продолжаем с нового значения, чтобы стрелка не ползла
-        // через всю шкалу.
-        val smoothed = smoothedCents?.let { prev ->
-            if (abs(rawCents - prev) > SNAP_CENTS) rawCents
-            else SMOOTH_ALPHA * rawCents + (1 - SMOOTH_ALPHA) * prev
-        } ?: rawCents
-        smoothedCents = smoothed
+        val smoothed: Double?
+        if (settled) {
+            smoothed = smoothedCents?.let { prev ->
+                // Скачок за один буфер (~46 мс) больше этого — это смена ноты
+                // (другая струна или переход через границу полутона), а не
+                // движение колка: продолжаем с нового значения, чтобы стрелка
+                // не ползла через всю шкалу.
+                if (abs(rawCents - prev) > SNAP_CENTS) rawCents
+                else SMOOTH_ALPHA * rawCents + (1 - SMOOTH_ALPHA) * prev
+            } ?: rawCents
+            smoothedCents = smoothed
+        } else {
+            smoothed = null
+        }
 
         val cents = nearest.cents
-        val inTune = abs(cents) <= IN_TUNE_CENTS && abs(smoothed) <= IN_TUNE_CENTS + 3
+        val inTune = smoothed != null &&
+            abs(cents) <= IN_TUNE_CENTS && abs(smoothed) <= IN_TUNE_CENTS + 3
         _state.value = s.copy(
             status = Status.DETECTED,
             detectedHz = hz,
@@ -169,7 +195,10 @@ class TunerViewModel(
         private const val SMOOTH_WINDOW = 7
 
         /** Вес новой оценки в сглаживании: меньше — спокойнее стрелка. */
-        private const val SMOOTH_ALPHA = 0.25
+        private const val SMOOTH_ALPHA = 0.18
+
+        /** Пауза после появления сигнала: стрелка стоит, пока оценка не устоится. */
+        private const val SETTLE_MS = 500
 
         /** Скачок центов за один буфер, выше которого считается, что сменилась нота. */
         private const val SNAP_CENTS = 30.0
