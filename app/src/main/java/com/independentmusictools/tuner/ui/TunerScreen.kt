@@ -119,12 +119,12 @@ fun TunerScreen(
                     .padding(horizontal = HORIZONTAL_PADDING),
             )
 
-            // Частоты и эталон — сразу под шкалой, опускаются вместе с ней.
+            // Частоты и эталон — ниже шкалы, опускаются вместе с ней.
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .offset(y = gaugeTop + gaugeHeight + 4.dp),
+                    .offset(y = gaugeTop + gaugeHeight + BELOW_GAUGE_GAP),
             ) {
                 val hzText = state.detectedHz?.let { stringResource(R.string.freq_hz, it) }
                     ?: stringResource(R.string.freq_placeholder)
@@ -257,6 +257,9 @@ private fun SmallStepButton(symbol: String, description: String, onClick: () -> 
 
 /** Горизонтальные поля контента от краёв экрана. */
 private val HORIZONTAL_PADDING = 24.dp
+
+/** Отступ блока частот от низа шкалы: ~30 dp ≈ 5 мм, чтобы ось и хвост стрелки не задевали текст. */
+private val BELOW_GAUGE_GAP = 34.dp
 
 /** Нижний отступ колонки кнопки микрофона до поднятия. */
 private val BOTTOM_MARGIN = 24.dp
